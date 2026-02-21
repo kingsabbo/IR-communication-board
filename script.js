@@ -24,6 +24,7 @@ async function createNewDay() {
             suggestedName: fileName,
             types: [{ description: 'CSV File', accept: { 'text/csv': ['.csv'] } }],
         });
+        document.getElementById('board-filename').innerText = `Current board: ${fileHandle.name}`;
         document.getElementById('setup-overlay').style.display = 'none';
         saveToFile();
     } catch (err) { console.log("Save Picker cancelled"); }
@@ -35,6 +36,7 @@ async function loadExistingDay() {
             types: [{ description: 'CSV File', accept: { 'text/csv': ['.csv'] } }],
             multiple: false
         });
+        document.getElementById('board-filename').innerText = `Current board: ${fileHandle.name}`;
         const file = await fileHandle.getFile();
         const content = await file.text();
         parseCSV(content);
@@ -128,7 +130,11 @@ function deletePerson(guid) {
 }
 
 function confirmReset() {
-    if (confirm("Reset Board?") && confirm("Final Warning: Data will be wiped.")) { patients = []; saveAndRender(); }
+    if (confirm("Reset Board?") && confirm("Final Warning: Data will be wiped.")) { 
+        patients = []; 
+        document.getElementById('board-filename').innerText = "Current board: no file loaded";
+        saveAndRender(); 
+    }
 }
 
 function saveAndRender() { render(); saveToFile(); }
@@ -144,7 +150,6 @@ function render() {
     patients.forEach(p => {
         if (![p.initials, p.procedure, p.notes].some(f => f.toLowerCase().includes(searchTerm))) return;
         
-        // CSS Color Class Logic
         let sCls = 'status-' + p.status.split(' ')[0].replace('(', '').replace(')', '');
         if (p.status === 'ready for procedure') sCls = 'status-ready';
         if (p.status.includes('intra')) sCls = 'status-intra';
@@ -189,7 +194,6 @@ function render() {
     });
 }
 
-// Update print timestamp right before printing
 window.onbeforeprint = () => {
     const opts = { timeZone: 'America/Los_Angeles', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     document.getElementById('print-timestamp').innerText = new Date().toLocaleString('en-US', opts) + " PST";
