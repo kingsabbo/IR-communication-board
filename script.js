@@ -1,7 +1,7 @@
 let fileHandle;
 let patients = [];
 let historyStack = [];
-let redoStack = [];
+let lastSaveTimestamp = 0;
 
 function updateClock() {
     const options = { timeZone: 'America/Los_Angeles', weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
@@ -10,6 +10,15 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 updateClock();
+
+// --- Autosave Logic ---
+setInterval(() => {
+    const fiveMinutes = 5 * 60 * 1000;
+    if (fileHandle && (Date.now() - lastSaveTimestamp) >= fiveMinutes) {
+        console.log("5 minutes passed since last save. Running autosave...");
+        manualSave();
+    }
+}, 60000); // Check every minute
 
 function clearSearch() { document.getElementById('searchInput').value = ''; render(); }
 
@@ -46,15 +55,14 @@ async function loadExistingDay() {
         parseCSV(text);
         document.getElementById('board-filename').innerText = `Board: ${fileHandle.name}`;
         document.getElementById('setup-overlay').style.display = 'none';
-        render(); // This was missing - triggers the UI update
+        render();
     } catch (err) { console.error(err); }
 }
 
-// Fixed Manual Save: It saves data but does NOT refresh the page
 async function manualSave() {
-    if (!fileHandle) return alert("Please load a file first.");
+    if (!fileHandle) return;
     await writeFullFile();
-    render(); // Updates the UI with latest stats
+    render(); 
     showStatusMessage("Board Refreshed & Saved");
 }
 
@@ -75,11 +83,9 @@ async function writeFullFile() {
     const writable = await fileHandle.createWritable();
     await writable.write(content);
     await writable.close();
+    lastSaveTimestamp = Date.now();
     showStatusMessage("Last Saved: " + new Date().toLocaleTimeString());
 }
-
-// Wrapper for individual field saves
-async function saveToFile(patientObj) { await writeFullFile(); }
 
 function parseCSV(text) {
     const lines = text.split("\n");
@@ -89,7 +95,7 @@ function parseCSV(text) {
         const p = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); 
         return {
             initials: p[0], bed: p[1], procedure: p[2], checkedIn: p[3], consented: p[4], iv: p[5], status: p[6],
-            notes: p[7].replace(/"/g, ''), sedate: p[8].replace(/"/g, ''), scrub: p[9].replace(/"/g, ''), report: p[10], porter: p[11],
+            notes: (p[7] || "").replace(/"/g, ''), sedate: (p[8] || "").replace(/"/g, ''), scrub: (p[9] || "").replace(/"/g, ''), report: p[10], porter: p[11],
             stats: { checkIn: Number(p[12]), preOp: Number(p[13]), proc: Number(p[14]), postOp: Number(p[15]), total: Number(p[16]) },
             guid: p[17], logs: JSON.parse(p[18].replace(/""/g, '"').replace(/^"|"$/g, '')), lastSavedTime: p[19], lastSavedMs: Number(p[20]),
             timestamps: { added: Number(p[21] || Date.now()) }
@@ -217,6 +223,6 @@ function undoLastAction() {
     render(); writeFullFile();
 }
 
-function redoLastAction() { /* Redo implementation if needed */ }
+function redoLastAction() { }
 function deletePerson(guid) { if (confirm("Delete row?")) { patients = patients.filter(p => p.guid !== guid); render(); writeFullFile(); } }
 function confirmReset() { if (confirm("Clear all data?")) { patients = []; render(); writeFullFile(); } }
