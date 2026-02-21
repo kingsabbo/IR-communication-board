@@ -7,14 +7,12 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <div id="setup-overlay">
         <div class="setup-card">
             <h2>IR Communication Board</h2>
             <p>Please select an option to begin today's tracking.</p>
             <button onclick="createNewDay()" class="add-btn">Create New Day</button>
             <button onclick="loadExistingDay()" class="export-btn">Load Existing Day</button>
-            
             <div style="margin-top: 20px;">
                 <a href="#" onclick="showInstructions()" style="color: #666; font-size: 0.9rem; text-decoration: underline;">Instructions</a>
             </div>
@@ -29,6 +27,7 @@
         </h1>
         <div class="header-btns">
             <span id="save-status">Not Started</span>
+            <button onclick="location.reload()" class="refresh-btn no-print">↻ Refresh</button>
             <button onclick="undoLastAction()" class="undo-btn no-print">↩ Undo</button>
             <button onclick="redoLastAction()" class="redo-btn no-print">↪ Redo</button>
             <button onclick="window.print()" class="print-btn">Print Board</button>
@@ -41,9 +40,9 @@
             <input type="text" id="newInitials" placeholder="Initials" maxlength="2" style="width: 80px;">
             <button onclick="addPerson()" class="add-btn">Add Patient</button>
         </div>
-        
-        <div class="search-section">
-            <input type="text" id="searchInput" placeholder="Search Initials, Procedure, or Notes..." onkeyup="render()">
+        <div class="search-section" style="display: flex; align-items: center;">
+            <input type="text" id="searchInput" placeholder="Search..." onkeyup="render()">
+            <button onclick="clearSearch()" class="reset-btn-small" style="margin-left: 5px;">X</button>
         </div>
     </div>
 
@@ -53,8 +52,8 @@
             <tr>
                 <th>Pt. Initials</th><th>Bed</th><th>Procedure</th><th>Check-In</th>
                 <th>Consent</th><th>IV Access</th><th>Status</th><th>Notes</th>
-                <th>Sedation RN</th><th>Scrub RN</th><th>Report</th><th>Porter</th><th>Stats</th>
-                <th class="no-print">Delete Row</th><th>Last Saved</th>
+                <th>Sedation RN</th><th>Scrub RN</th><th>Report</th><th>Porter</th><th>Stats Audit Log</th>
+                <th class="no-print">Del</th><th class="no-print">Edit</th><th>Last Saved</th>
             </tr>
         </thead>
         <tbody id="activeBody"></tbody>
@@ -67,10 +66,7 @@
         <tbody id="dischargedBody" class="grey-text"></tbody>
     </table>
 
-    <div class="print-footer">
-        Report Generated: <span id="print-timestamp"></span>
-    </div>
-
+    <div class="print-footer">Report Generated: <span id="print-timestamp"></span></div>
     <script src="script.js"></script>
 </body>
 </html>
