@@ -33,7 +33,7 @@ th:nth-child(13) { width: 160px; } /* Stats */
 th:nth-child(14) { width: 60px; }  /* Delete Row */
 th:nth-child(15) { width: 70px; font-size: 9px; } /* Last Saved */
 
-/* Status Color Coding */
+/* Status Colors */
 .status-new { background-color: #ffffff !important; }
 .status-arrived { background-color: #ffcc80 !important; }
 .status-checked-in { background-color: #fff59d !important; }
@@ -68,7 +68,7 @@ textarea.auto-grow {
     transition: background-color 0.3s ease;
 }
 
-/* Buttons */
+/* Buttons and Feedback */
 .header-btns { display: flex; align-items: center; }
 #save-status { font-size: 11px; color: #28a745; background: #eaffea; padding: 4px 8px; border-radius: 4px; margin-right: 10px; font-weight: bold; }
 #save-status.warning { color: #dc3545; background: #fff5f5; animation: shake 0.3s; }
@@ -84,10 +84,10 @@ textarea.auto-grow {
 
 input, select { padding: 4px; border: 1px solid rgba(0,0,0,0.1); border-radius: 3px; width: 95%; box-sizing: border-box; }
 
-/* Overlay */
+/* Setup Overlay */
 #setup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; }
 .setup-card { background: white; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-.last-saved-cell { font-size: 9px; color: #666; }
+.setup-card a:hover { color: #007bff !important; }
 
 .print-footer { display: none; position: fixed; bottom: 0; width: 100%; font-size: 10px; text-align: right; border-top: 1px solid #ccc; padding-top: 5px; }
 
