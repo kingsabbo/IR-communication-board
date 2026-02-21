@@ -15,16 +15,14 @@ updateClock();
 setInterval(() => {
     const fiveMinutes = 5 * 60 * 1000;
     if (fileHandle && (Date.now() - lastSaveTimestamp) >= fiveMinutes) {
-        console.log("5 minutes passed since last save. Running autosave...");
         manualSave();
     }
-}, 60000); // Check every minute
+}, 60000); 
 
 function clearSearch() { document.getElementById('searchInput').value = ''; render(); }
 
 function showStatusMessage(msg) {
-    const statusEl = document.getElementById('save-status');
-    statusEl.innerText = msg;
+    document.getElementById('save-status').innerText = msg;
 }
 
 function formatTimeDisplay(ms) {
@@ -40,7 +38,7 @@ function autoExpand(el) { el.style.height = 'inherit'; el.style.height = (el.scr
 async function createNewDay() {
     try {
         fileHandle = await window.showSaveFilePicker({ suggestedName: `IR_Board_${new Date().toLocaleDateString().replace(/\//g,'_')}.csv` });
-        document.getElementById('board-filename').innerText = `Board: ${fileHandle.name}`;
+        document.getElementById('board-filename').innerText = `Current Board: ${fileHandle.name}`;
         document.getElementById('setup-overlay').style.display = 'none';
         await writeFullFile();
     } catch (err) { console.error(err); }
@@ -53,7 +51,7 @@ async function loadExistingDay() {
         const file = await fileHandle.getFile();
         const text = await file.text();
         parseCSV(text);
-        document.getElementById('board-filename').innerText = `Board: ${fileHandle.name}`;
+        document.getElementById('board-filename').innerText = `Current Board: ${fileHandle.name}`;
         document.getElementById('setup-overlay').style.display = 'none';
         render();
     } catch (err) { console.error(err); }
@@ -90,17 +88,21 @@ async function writeFullFile() {
 function parseCSV(text) {
     const lines = text.split("\n");
     if (lines.length <= 1) return;
-    
-    patients = lines.slice(1).filter(l => l.trim() !== "").map(line => {
-        const p = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); 
-        return {
+    const latestEntries = new Map();
+    lines.slice(1).filter(l => l.trim() !== "").forEach(line => {
+        const p = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+        const entry = {
             initials: p[0], bed: p[1], procedure: p[2], checkedIn: p[3], consented: p[4], iv: p[5], status: p[6],
             notes: (p[7] || "").replace(/"/g, ''), sedate: (p[8] || "").replace(/"/g, ''), scrub: (p[9] || "").replace(/"/g, ''), report: p[10], porter: p[11],
             stats: { checkIn: Number(p[12]), preOp: Number(p[13]), proc: Number(p[14]), postOp: Number(p[15]), total: Number(p[16]) },
             guid: p[17], logs: JSON.parse(p[18].replace(/""/g, '"').replace(/^"|"$/g, '')), lastSavedTime: p[19], lastSavedMs: Number(p[20]),
             timestamps: { added: Number(p[21] || Date.now()) }
         };
+        if (!latestEntries.has(entry.guid) || entry.lastSavedMs > latestEntries.get(entry.guid).lastSavedMs) {
+            latestEntries.set(entry.guid, entry);
+        }
     });
+    patients = Array.from(latestEntries.values());
 }
 
 function addPerson() {
@@ -120,15 +122,19 @@ function addPerson() {
     writeFullFile();
 }
 
-function editInitials(guid) {
-    const p = patients.find(p => p.guid === guid);
-    const newInit = prompt("Update initials (2 char max):", p.initials);
-    if (newInit !== null) updateField(guid, 'initials', newInit.toUpperCase().substring(0, 2));
-}
-
 function updateField(guid, field, value) {
     const p = patients.find(p => p.guid === guid);
     if (!p || p[field] === value) return;
+
+    if (field === 'bed' && value !== '') {
+        const isOccupied = patients.some(other => other.bed === value && other.guid !== guid && other.status !== 'discharged');
+        if (isOccupied) {
+            alert(`Bed ${value} is already occupied!`);
+            render(); 
+            return;
+        }
+    }
+
     historyStack.push(JSON.parse(JSON.stringify(p)));
     p[field] = value;
     if (field === 'status') calculateStats(p, value);
@@ -140,7 +146,6 @@ function calculateStats(p, newS) {
     const now = Date.now();
     if (!p.logs[newS + "_first"]) p.logs[newS + "_first"] = now;
     p.logs[newS + "_latest"] = now;
-
     if (p.logs['checked-in_latest']) p.stats.checkIn = p.logs['checked-in_latest'] - p.timestamps.added;
     const readyFirst = p.logs['ready for procedure_first'];
     const intraLatest = p.logs['intra (IR-A)_latest'] || p.logs['intra (IR-B)_latest'];
@@ -187,7 +192,7 @@ function render() {
                     ${['NEEDED', 'In Situ', 'PICC', 'Port', 'Not Needed'].map(v => `<option ${p.iv === v ? 'selected' : ''}>${v}</option>`).join('')}
                 </select></td>
                 <td><select class="${checkNeeded(p.status)}" onchange="updateField('${p.guid}', 'status', this.value)">
-                    ${['newly arrived', 'arrived', 'checked-in', 'ready for procedure', 'intra (IR-A)', 'intra (IR-B)', 'post-op', 'discharged'].map(v => `<option ${p.status === v ? 'selected' : ''}>${v}</option>`).join('')}
+                    ${['newly arrived', 'checked-in', 'ready for procedure', 'intra (IR-A)', 'intra (IR-B)', 'post-op', 'discharged'].map(v => `<option ${p.status === v ? 'selected' : ''}>${v}</option>`).join('')}
                 </select></td>
                 <td><textarea class="auto-grow" oninput="autoExpand(this)" onblur="updateField('${p.guid}', 'notes', this.value)">${p.notes}</textarea></td>
                 <td><input type="text" value="${p.sedate}" onblur="updateField('${p.guid}', 'sedate', this.value)"></td>
@@ -199,9 +204,9 @@ function render() {
                     ${['NEEDED POST-OP', 'Booked', 'Not Needed'].map(v => `<option ${p.porter === v ? 'selected' : ''}>${v}</option>`).join('')}
                 </select></td>
                 <td style="white-space:nowrap">
-                    TiC: ${formatTimeDisplay(p.stats.checkIn)} | Pre: ${formatTimeDisplay(p.stats.preOp)}<br>
-                    Pro: ${formatTimeDisplay(p.stats.proc)} | Pst: ${formatTimeDisplay(p.stats.postOp)}<br>
-                    <strong>Total: ${formatTimeDisplay(p.stats.total)}</strong>
+                    Check-In: ${formatTimeDisplay(p.stats.checkIn)} | Pre-Op: ${formatTimeDisplay(p.stats.preOp)}<br>
+                    Procedure: ${formatTimeDisplay(p.stats.proc)} | Post-Op: ${formatTimeDisplay(p.stats.postOp)}<br>
+                    <strong>Total Duration: ${formatTimeDisplay(p.stats.total)}</strong>
                 </td>
                 <td class="no-print"><button class="delete-btn" onclick="deletePerson('${p.guid}')">❌</button></td>
                 <td class="no-print"><button class="edit-btn" onclick="editInitials('${p.guid}')">✏️</button></td>
@@ -216,13 +221,7 @@ function render() {
     document.querySelectorAll('textarea.auto-grow').forEach(el => autoExpand(el));
 }
 
-function undoLastAction() {
-    if (historyStack.length === 0) return;
-    const prev = historyStack.pop();
-    patients[patients.findIndex(p => p.guid === prev.guid)] = prev;
-    render(); writeFullFile();
-}
-
-function redoLastAction() { }
 function deletePerson(guid) { if (confirm("Delete row?")) { patients = patients.filter(p => p.guid !== guid); render(); writeFullFile(); } }
 function confirmReset() { if (confirm("Clear all data?")) { patients = []; render(); writeFullFile(); } }
+function undoLastAction() { if (historyStack.length === 0) return; const prev = historyStack.pop(); patients[patients.findIndex(p => p.guid === prev.guid)] = prev; render(); writeFullFile(); }
+function redoLastAction() { }
