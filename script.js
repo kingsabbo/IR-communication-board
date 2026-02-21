@@ -36,12 +36,21 @@ async function loadExistingDay() {
             types: [{ description: 'CSV File', accept: { 'text/csv': ['.csv'] } }],
             multiple: false
         });
-        document.getElementById('board-filename').innerText = `Current board: ${fileHandle.name}`;
+        
         const file = await fileHandle.getFile();
         const content = await file.text();
-        parseCSV(content);
-        document.getElementById('setup-overlay').style.display = 'none';
-        render();
+        
+        // Error handling for parsing
+        try {
+            parseCSV(content);
+            document.getElementById('board-filename').innerText = `Current board: ${fileHandle.name}`;
+            document.getElementById('setup-overlay').style.display = 'none';
+            render();
+        } catch (parseErr) {
+            alert(`This file is not compatible. \n\nError: ${parseErr.message}`);
+            fileHandle = null; // Reset handle if load fails
+        }
+        
     } catch (err) { console.log("Load Picker cancelled"); }
 }
 
@@ -51,7 +60,6 @@ async function saveToFile() {
     const now = new Date();
     const timeStr = now.getHours() + ":" + now.getMinutes().toString().padStart(2, '0');
     
-    // Update individual row saved markers
     patients.forEach(p => p.lastSavedTime = timeStr);
 
     const headers = "initials,bed,procedure,checkedIn,consented,iv,status,notes,sedate,scrub,report,porter,stats_checkIn,stats_preOp,stats_proc,stats_postOp,guid,timestamps_added,lastTransitionTime,lastSavedTime\n";
@@ -74,9 +82,23 @@ async function saveToFile() {
 }
 
 function parseCSV(text) {
-    const lines = text.split("\n").slice(1);
-    patients = lines.filter(line => line.trim() !== "").map(line => {
+    const lines = text.split("\n");
+    const headerRow = lines[0].trim();
+    
+    // Basic validation: Check if the header matches our expected format
+    if (!headerRow.includes("initials") || !headerRow.includes("guid")) {
+        throw new Error("Missing required IR Board data columns.");
+    }
+
+    const dataLines = lines.slice(1);
+    patients = dataLines.filter(line => line.trim() !== "").map((line, index) => {
         const parts = line.split(",");
+        
+        // Ensure the line has the expected number of columns (20)
+        if (parts.length < 20) {
+            throw new Error(`Line ${index + 2} is malformed or incomplete.`);
+        }
+
         return {
             initials: parts[0], bed: parts[1], procedure: parts[2], checkedIn: parts[3],
             consented: parts[4], iv: parts[5], status: parts[6], notes: parts[7].replace(/"/g, ''),
