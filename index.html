@@ -25,6 +25,8 @@
         </h1>
         <div class="header-btns">
             <span id="save-status">Not Started</span>
+            <button onclick="undoLastAction()" class="undo-btn no-print">↩ Undo</button>
+            <button onclick="redoLastAction()" class="redo-btn no-print">↪ Redo</button>
             <button onclick="window.print()" class="print-btn">Print Board</button>
             <button onclick="confirmReset()" class="reset-btn">Clear Board</button>
         </div>
@@ -41,14 +43,14 @@
         </div>
     </div>
 
-    <h2>Active Queue</h2>
+    <h2>Active Queue: <span id="active-count">0</span></h2>
     <table id="activeTable">
         <thead>
             <tr>
-                <th>Initials</th><th>Bed</th><th>Procedure</th><th>Check-In</th>
-                <th>Consent</th><th>IV</th><th>Status</th><th>Notes</th>
-                <th>Sedate</th><th>Scrub</th><th>Rep</th><th>Porter</th><th>Stats</th>
-                <th class="no-print">Action</th><th>Last Saved</th>
+                <th>Pt. Initials</th><th>Bed</th><th>Procedure</th><th>Check-In</th>
+                <th>Consent</th><th>IV Access</th><th>Status</th><th>Notes</th>
+                <th>Sedation RN</th><th>Scrub RN</th><th>Report</th><th>Porter</th><th>Stats</th>
+                <th class="no-print">Delete Row</th><th>Last Saved</th>
             </tr>
         </thead>
         <tbody id="activeBody"></tbody>
@@ -56,7 +58,7 @@
 
     <hr>
 
-    <h2 style="color: grey;">Discharged</h2>
+    <h2 style="color: grey;">Discharged: <span id="discharged-count">0</span></h2>
     <table id="dischargedTable">
         <tbody id="dischargedBody" class="grey-text"></tbody>
     </table>
