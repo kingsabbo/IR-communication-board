@@ -3,7 +3,7 @@ let patients = [];
 let historyStack = [];
 let redoStack = [];
 
-// --- Utilities ---
+// --- Utilities & UI ---
 function updateClock() {
     const options = { timeZone: 'America/Los_Angeles', weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     const clockEl = document.getElementById('pst-clock');
@@ -11,6 +11,10 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 updateClock();
+
+function showInstructions() {
+    alert("Welcome to the IR Communication Board!");
+}
 
 function showStatusMessage(msg, isWarning = false) {
     const statusEl = document.getElementById('save-status');
@@ -32,7 +36,7 @@ function autoExpand(el) {
     el.style.height = (el.scrollHeight) + 'px';
 }
 
-// --- File Handling (Audit Log / Append Mode) ---
+// --- File Handling (Audit Log Append Mode) ---
 async function createNewDay() {
     const date = new Date();
     const fileName = `IR_Board_${date.getDate()}_${date.getMonth() + 1}_${date.getFullYear()}.csv`;
@@ -66,11 +70,10 @@ async function saveToFile(patientObj = null) {
 
     const headers = "initials,bed,procedure,checkedIn,consented,iv,status,notes,sedate,scrub,report,porter,stats_checkIn,stats_preOp,stats_proc,stats_postOp,guid,timestamps_added,lastTransitionTime,lastSavedTime,lastSavedMs\n";
     
-    let contentToSave = "";
     try {
         const file = await fileHandle.getFile();
-        contentToSave = await file.text();
-        if (contentToSave.length === 0) contentToSave = headers;
+        let currentContent = await file.text();
+        if (currentContent.length === 0) currentContent = headers;
 
         if (patientObj) {
             patientObj.lastSavedTime = timeStr;
@@ -82,11 +85,11 @@ async function saveToFile(patientObj = null) {
                 patientObj.stats.proc, patientObj.stats.postOp, patientObj.guid, 
                 patientObj.timestamps.added, patientObj.lastTransitionTime, patientObj.lastSavedTime, patientObj.lastSavedMs
             ].join(",") + "\n";
-            contentToSave += row;
+            currentContent += row;
         }
 
         const writable = await fileHandle.createWritable();
-        await writable.write(contentToSave);
+        await writable.write(currentContent);
         await writable.close();
         showStatusMessage("Last Saved: " + timeStr);
     } catch (e) { showStatusMessage("Save Error", true); }
@@ -94,7 +97,7 @@ async function saveToFile(patientObj = null) {
 
 function parseCSV(text) {
     const lines = text.split("\n");
-    if (!lines[0].includes("guid")) throw new Error("Missing required columns.");
+    if (!lines[0].includes("guid")) throw new Error("Invalid format.");
     const allHistory = lines.slice(1).filter(l => l.trim() !== "").map(line => {
         const parts = line.split(",");
         return {
@@ -112,7 +115,7 @@ function parseCSV(text) {
     patients = Array.from(latestMap.values());
 }
 
-// --- App Logic ---
+// --- App Functions ---
 function addPerson() {
     const input = document.getElementById('newInitials');
     const initials = input.value.toUpperCase().trim();
@@ -243,7 +246,7 @@ function render() {
     document.querySelectorAll('textarea.auto-grow').forEach(el => autoExpand(el));
 }
 
-// Keyboard Shortcuts
+// Shortcuts
 window.addEventListener('keydown', (e) => {
     const isTyping = ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName);
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { if (!isTyping) { e.preventDefault(); undoLastAction(); } }
