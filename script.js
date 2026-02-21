@@ -11,7 +11,7 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// --- Autosave Logic ---
+// --- Autosave Logic (Every 5 Minutes) ---
 setInterval(() => {
     const fiveMinutes = 5 * 60 * 1000;
     if (fileHandle && (Date.now() - lastSaveTimestamp) >= fiveMinutes) {
@@ -126,6 +126,7 @@ function updateField(guid, field, value) {
     const p = patients.find(p => p.guid === guid);
     if (!p || p[field] === value) return;
 
+    // BED VALIDATION: Prevent duplicates in active queue
     if (field === 'bed' && value !== '') {
         const isOccupied = patients.some(other => other.bed === value && other.guid !== guid && other.status !== 'discharged');
         if (isOccupied) {
@@ -221,7 +222,12 @@ function render() {
     document.querySelectorAll('textarea.auto-grow').forEach(el => autoExpand(el));
 }
 
+function editInitials(guid) {
+    const p = patients.find(p => p.guid === guid);
+    const newInit = prompt("Update initials (2 char max):", p.initials);
+    if (newInit !== null) updateField(guid, 'initials', newInit.toUpperCase().substring(0, 2));
+}
+
 function deletePerson(guid) { if (confirm("Delete row?")) { patients = patients.filter(p => p.guid !== guid); render(); writeFullFile(); } }
-function confirmReset() { if (confirm("Clear all data?")) { patients = []; render(); writeFullFile(); } }
 function undoLastAction() { if (historyStack.length === 0) return; const prev = historyStack.pop(); patients[patients.findIndex(p => p.guid === prev.guid)] = prev; render(); writeFullFile(); }
 function redoLastAction() { }
