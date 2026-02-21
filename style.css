@@ -47,6 +47,31 @@ input, select { padding: 4px; border: 1px solid rgba(0,0,0,0.1); border-radius: 
 .setup-card { background: white; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .last-saved-cell { font-size: 9px; color: #666; }
 
+/*Header for file name*/
+/* Add this to your existing style.css */
+
+.file-label {
+    font-size: 0.85rem;
+    color: #007bff;
+    font-weight: bold;
+    margin-left: 20px;
+    background: #e7f3ff;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid #b3d7ff;
+    display: inline-block;
+}
+
+@media print {
+    /* Ensure the board name prints so you know which file the paper matches */
+    .file-label {
+        border: none;
+        background: none;
+        color: black;
+        margin-left: 10px;
+    }
+}
+
 /* Print Footer */
 .print-footer { display: none; position: fixed; bottom: 0; width: 100%; font-size: 10px; text-align: right; border-top: 1px solid #ccc; padding-top: 5px; }
 
